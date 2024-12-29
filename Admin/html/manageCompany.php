@@ -1,25 +1,33 @@
 <?php include("header.php");
-$select1 = " SELECT 
-        *,
-        ci.city_name     
-    FROM 
-        companies c
-    INNER JOIN 
-        cities ci ON c.city_id = ci.city_id
-  
-";
-$query1 = mysqli_query($connect, $select1);
 
+// Fetch companies for the dropdown
+$select = "SELECT 
+    co.company_id,
+    co.company_name,
+    co.address,
+    co.contact_info,
+    c.city_name
+FROM companies co
+INNER JOIN cities c ON co.city_id = c.city_id";
+
+// search 
+if (isset($_POST['search'])) {
+    $search_company = $_POST['search_company'];
+    if (!empty($search_company)) {
+        $select .= " WHERE co.company_name LIKE '%$search_company%'";
+    }
+}
+$query = mysqli_query($connect, $select);
 ?>
 
 <!-- Recent Sales Start -->
-<div class="container-fluid pt-4 px-4 mx-2">
-    <div class="bg-white rounded py-4 px-3">
-    <h5 class="py-1 px-2 fs-4 fw-bold">All Companies</h5>
+<div class="container-fluid pt-4 px-4 my-4">
+    <div class="bg-white text-center rounded py-4 px-3">
         <div class="d-flex flex-wrap align-items-center justify-content-between g-">
-            <form style="width: 300px" class="input-group  my-2 mx-1">
-                <input placeholder="Enter Company name" type="text" class="form-control">
-                <button type="submit" class="input-group-text bg-primary text-white"><i
+            <!-- <h6 class="mb-0">Courier Details</h6> -->
+            <form method="POST" style="width: 300px" class="input-group  my-2 mx-1">
+                <input placeholder="Enter Company name" name="search_company" type="text" class="form-control">
+                <button name="search" type="submit" class="input-group-text bg-primary text-white"><i
                         class="fa fa-search"></i></button>
             </form>
             <a class="btn btn-primary my-2 mx-1" href="addCompany.php">Add new Company +</a>
@@ -32,14 +40,17 @@ $query1 = mysqli_query($connect, $select1);
 <!-- Recent Sales End -->
 
 
+
 <!-- Table Start -->
-<div class="container-fluid pt-4 px-4 mx-2">
+<div class="container-fluid pt-4 px-4">
     <div class="row g-4">
         <!-- hover  -->
-        <div class="col">
-            <div class="bg-white rounded h-100 p-4">
-                <h6 class="mb-4">Companies</h6>
-                <div class="table-responsive" >
+        <div class="rounded shadow-sm bg-white col-12 mx-2">
+            <div class=" h-100 p-4">
+            <div class="d-flex justify-content-between">
+                <h4 class='mb-4'>Companies</h4>
+                <a href="manageCompany.php" class="btn btn-primary my-2 mx-1">View All</a>
+                </div>
                 <table class="table table-hover">
                     <thead>
                         <tr>
@@ -47,7 +58,7 @@ $query1 = mysqli_query($connect, $select1);
                             <th scope="col">Company Name</th>
                             <th scope="col">Company Address</th>
                             <th scope="col">Contact Info</th>
-                            <th scope="col">City</th>
+                            <th scope="col">Cities</th>
 
                             <th scope="col">Edit</th>
                             <th scope="col">Delete</th>
@@ -55,8 +66,10 @@ $query1 = mysqli_query($connect, $select1);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php    $i = 1;
-                        while ($fetch = mysqli_fetch_assoc($query1)) {
+                        <?php
+                        // Fetch and display companies from the database
+                        $i = 1; // Row number
+                        while ($fetch = mysqli_fetch_assoc($query)) {
                             ?>
                             <tr>
                                 <th scope="row"><?php echo $i++; ?></th>
@@ -64,29 +77,63 @@ $query1 = mysqli_query($connect, $select1);
                                 <td><?php echo $fetch['address']; ?></td>
                                 <td><?php echo $fetch['contact_info']; ?></td>
                                 <td><?php echo $fetch['city_name']; ?></td>
-                                <td><button class="border-0 bg-white"><i class="fa fa-edit " style="color: green;"></i>
+                                <td><a href="updateCompany.php?uc_id=<?php echo $fetch['company_id']; ?>"><button
+                                            class="border-0"><i class="fa fa-edit" style="color: green;"></i></a></i>
                                     </button></td>
-                                <td><button class="border-0 bg-white"><i class="fa fa-trash "
-                                            style="color: red;"></i></button></td>
+                                <td><a href="manageCompany.php?dc_id=<?php echo $fetch['company_id']; ?>"><button
+                                            class="border-0"><i class="fa fa-trash" style="color: red;"></i></button></a>
+                                </td>
                             </tr>
                         <?php } ?>
                     </tbody>
                 </table>
-                </div>
-               
             </div>
         </div>
     </div>
 </div>
 <!-- Table End -->
 
+<?php
 
-<?php include("footer.php"); ?>
-<style>
 
-.table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+
+if (isset($_POST['add_company'])) {
+    // Collect form data
+    $company_name = $_POST['company_name'];
+    $address = $_POST['address'];
+    $contact_info = $_POST['contact_info'];
+
+    // Insert query
+    $insert = "INSERT INTO `companies` (`company_name`, `address`, `contact_info`) 
+                VALUES ('$company_name', '$address', '$contact_info')";
+
+    // Execute insert query and check for errors
+    if (mysqli_query($connect, $insert)) {
+        echo "<script>
+                alert('Company Added Successfully!');
+                window.location.href = 'manageCompany.php';
+               </script>";
+    } else {
+        echo "<script>alert('Error: " . mysqli_error($connect) . "');</script>";
+    }
 }
 
-</style>
+
+
+// Delete data 
+
+if (isset($_GET["dc_id"])) {
+    $company_id = $_GET["dc_id"];
+    $delete = "DELETE FROM `companies` WHERE `company_id` = '$company_id'";
+    $done = mysqli_query($connect, $delete);
+    if ($done) {
+        echo
+            "<script>
+      alert('Record Delete!');
+      window.location.href = 'manageCompany.php';
+      </script>";
+    }
+}
+?>
+
+<?php include("footer.php"); ?>
